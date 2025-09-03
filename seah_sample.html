@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lithium 모바일 앱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nanum Gothic', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* 기본 화면 숨김 처리 */
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        /* 활성 화면 표시 */
+        .screen.active {
+            display: flex;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Lithium 색상 시스템 정의 */
+        .btn-primary { background-color: #E54E2B; color: white; }
+        .btn-secondary { background-color: #6E6E6E; color: white; }
+        .btn-tertiary { background-color: #101314; color: white; }
+        .text-primary { color: #101314; }
+        .text-secondary { color: #6E6E6E; }
+        .border-base { border-color: #D8D8D8; }
+        .bg-light { background-color: #F8F8F8; }
+    </style>
+</head>
+<body class="bg-white">
+
+    <div id="app-container" class="max-w-sm mx-auto h-screen bg-white flex flex-col">
+
+        <!-- Screen 1: 분류 -->
+        <div id="screen-category" class="screen active w-full h-full flex-col p-6">
+            <header class="flex-shrink-0 pt-8 pb-6">
+                <h1 class="text-3xl font-bold text-primary">분류</h1>
+                <p class="text-secondary mt-2">작업할 메뉴를 선택하세요.</p>
+            </header>
+            <main class="flex-grow space-y-4">
+                <button onclick="showScreen('screen-menu')" class="w-full text-left p-6 bg-light rounded-lg shadow-sm transition-transform hover:scale-[1.02]">
+                    <span class="text-lg font-bold text-primary">물류 자재</span>
+                </button>
+                <button class="w-full text-left p-6 bg-light rounded-lg shadow-sm transition-transform hover:scale-[1.02]">
+                    <span class="text-lg font-bold text-primary">생산</span>
+                </button>
+            </main>
+            <footer class="flex-shrink-0 py-4">
+                <button class="w-full p-4 text-center btn-secondary rounded-md" style="border-radius: 2px;">종료</button>
+            </footer>
+        </div>
+
+        <!-- Screen 2: 메뉴 -->
+        <div id="screen-menu" class="screen w-full h-full flex-col">
+            <header class="flex-shrink-0 p-6 flex items-center border-b border-base">
+                 <button onclick="showScreen('screen-category')" class="p-2 -ml-2">&larr;</button>
+                 <h1 class="text-xl font-bold text-primary ml-2">메뉴</h1>
+            </header>
+            <main class="flex-grow overflow-y-auto">
+                <nav class="divide-y divide-base">
+                    <a href="#" onclick="showScreen('screen-material-in')" class="block p-4 hover:bg-light">원자재 입하</a>
+                    <a href="#" class="block p-4 hover:bg-light">생산 야드 이동</a>
+                    <a href="#" class="block p-4 hover:bg-light">적재위치 변경</a>
+                    <a href="#" class="block p-4 hover:bg-light">실사 재고 등록</a>
+                    <a href="#" class="block p-4 hover:bg-light">출하 등록</a>
+                    <a href="#" class="block p-4 hover:bg-light">물류 이력 조회</a>
+                    <!-- ... other items -->
+                </nav>
+            </main>
+        </div>
+        
+        <!-- Screen 3: 원자재 입하 -->
+        <div id="screen-material-in" class="screen w-full h-full flex-col">
+             <header class="flex-shrink-0 p-6 flex items-center border-b border-base">
+                 <button onclick="showScreen('screen-menu')" class="p-2 -ml-2">&larr;</button>
+                 <h1 class="text-xl font-bold text-primary ml-2">원자재 입하</h1>
+            </header>
+            <main class="flex-grow p-6 overflow-y-auto space-y-6">
+                <div>
+                    <label class="text-sm font-bold text-secondary">사업장</label>
+                    <select class="w-full mt-1 p-3 border-b-2 border-base bg-light rounded-t-md focus:outline-none focus:border-red-500">
+                        <option>사업장 선택</option>
+                    </select>
+                </div>
+                 <div>
+                    <label class="text-sm font-bold text-secondary">입고일자</label>
+                    <input type="date" value="2019-10-28" class="w-full mt-1 p-3 border-b-2 border-base bg-light rounded-t-md focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="text-sm font-bold text-secondary">적재위치 검색</label>
+                    <div class="flex items-center mt-1">
+                        <input type="text" class="flex-grow p-3 border-b-2 border-base bg-light rounded-t-md focus:outline-none focus:border-red-500">
+                        <button class="ml-2 p-3 btn-secondary rounded-md" style="border-radius: 2px;">변경</button>
+                    </div>
+                     <div class="flex space-x-2 mt-2">
+                        <button class="flex-1 py-2 border border-base rounded-md hover:bg-light">A</button>
+                        <button class="flex-1 py-2 border border-base rounded-md hover:bg-light">B</button>
+                        <button class="flex-1 py-2 border border-base rounded-md hover:bg-light">C</button>
+                        <button class="flex-1 py-2 border border-base rounded-md hover:bg-light">G</button>
+                        <button class="flex-1 py-2 border border-base rounded-md hover:bg-light">Z</button>
+                    </div>
+                </div>
+            </main>
+            <footer class="flex-shrink-0 p-6 grid grid-cols-2 gap-4 border-t border-base">
+                <button onclick="showScreen('screen-scan')" class="w-full p-4 text-center btn-primary rounded-md" style="border-radius: 2px;">시작</button>
+                <button onclick="showScreen('screen-menu')" class="w-full p-4 text-center btn-secondary rounded-md" style="border-radius: 2px;">종료</button>
+            </footer>
+        </div>
+
+        <!-- Screen 4: 원자재 스캔 -->
+        <div id="screen-scan" class="screen w-full h-full flex-col">
+            <header class="flex-shrink-0 p-6 flex items-center border-b border-base">
+                 <button onclick="showScreen('screen-material-in')" class="p-2 -ml-2">&larr;</button>
+                 <h1 class="text-xl font-bold text-primary ml-2">원자재 스캔</h1>
+            </header>
+            <main class="flex-grow p-6 overflow-y-auto space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-bold text-secondary">입고창고</label>
+                        <p class="mt-1 p-3 bg-gray-100 rounded-md">창고 A</p>
+                    </div>
+                    <div>
+                        <label class="text-sm font-bold text-secondary">수량</label>
+                        <p class="mt-1 p-3 bg-gray-100 rounded-md">100</p>
+                    </div>
+                </div>
+                 <div>
+                    <label class="text-sm font-bold text-secondary">재고상태</label>
+                    <select class="w-full mt-1 p-3 border-b-2 border-base bg-light rounded-t-md focus:outline-none focus:border-red-500">
+                        <option>정상</option>
+                        <option>불량</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-sm font-bold text-secondary">바코드</label>
+                    <input type="text" placeholder="스캔 또는 직접 입력..." class="w-full mt-1 p-3 border-b-2 border-base bg-light rounded-t-md focus:outline-none focus:border-red-500">
+                </div>
+            </main>
+            <footer class="flex-shrink-0 p-6 border-t border-base">
+                <button onclick="showScreen('screen-info')" class="w-full p-4 text-center btn-primary rounded-md" style="border-radius: 2px;">다음</button>
+            </footer>
+        </div>
+
+        <!-- Screen 5: 원자재 정보 -->
+        <div id="screen-info" class="screen w-full h-full flex-col">
+            <header class="flex-shrink-0 p-6 flex items-center border-b border-base">
+                 <button onclick="showScreen('screen-scan')" class="p-2 -ml-2">&larr;</button>
+                 <h1 class="text-xl font-bold text-primary ml-2">원자재 정보</h1>
+            </header>
+            <main class="flex-grow p-6 overflow-y-auto space-y-6">
+                <div>
+                    <label class="text-sm font-bold text-secondary">Coil No.</label>
+                    <input type="text" value="ABC-12345" class="w-full mt-1 p-3 border-b-2 border-base bg-light rounded-t-md focus:outline-none focus:border-red-500">
+                </div>
+                 <div>
+                    <label class="text-sm font-bold text-secondary">규격</label>
+                    <input type="text" value="100x100" class="w-full mt-1 p-3 border-b-2 border-base bg-light rounded-t-md focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="text-sm font-bold text-secondary">재고상태</label>
+                    <select class="w-full mt-1 p-3 border-b-2 border-base bg-light rounded-t-md focus:outline-none focus:border-red-500">
+                        <option>정상</option>
+                        <option>불량</option>
+                    </select>
+                </div>
+            </main>
+            <footer class="flex-shrink-0 p-6 grid grid-cols-2 gap-4 border-t border-base">
+                <button class="w-full p-4 text-center btn-secondary rounded-md" style="border-radius: 2px;">취소</button>
+                <button class="w-full p-4 text-center btn-primary rounded-md" style="border-radius: 2px;">저장</button>
+            </footer>
+        </div>
+
+    </div>
+
+    <script>
+        // 현재 활성화된 화면 ID를 저장하는 변수
+        let currentScreen = 'screen-category';
+
+        function showScreen(screenId) {
+            // 모든 화면을 숨김
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+
+            // 요청된 화면만 표시
+            const nextScreen = document.getElementById(screenId);
+            if (nextScreen) {
+                nextScreen.classList.add('active');
+                currentScreen = screenId;
+            }
+        }
+
+        // 초기 화면 설정 (페이지 로드 시)
+        document.addEventListener('DOMContentLoaded', () => {
+            showScreen(currentScreen);
+        });
+    </script>
+
+</body>
+</html>
