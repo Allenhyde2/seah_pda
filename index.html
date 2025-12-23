@@ -1,0 +1,804 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Menu, 
+  Bell, 
+  ChevronRight, 
+  CheckCircle2, 
+  AlertCircle, 
+  ClipboardList, 
+  HardHat, 
+  Truck, 
+  Search,
+  QrCode,
+  ArrowUpRight,
+  MoreHorizontal,
+  X,
+  ChevronDown,
+  FileText,
+  Shield,
+  Activity,
+  Zap,
+  Settings,
+  Database,
+  Map as MapIcon,
+  Filter,
+  Layers,
+  Flame,
+  AlertTriangle,
+  Radio,
+  Navigation,
+  Plus,
+  Calendar,
+  Briefcase,
+  User,
+  MoreVertical,
+  RefreshCw,
+  Search as SearchIcon,
+  ChevronLeft,
+  Save,
+  Upload,
+  Trash2,
+  Users,
+  FileCheck,
+  Phone,
+  Info,
+  Download,
+  FileSpreadsheet,
+  File as FileIcon,
+  UserCheck,
+  Send,
+  Building,
+  MapPin,
+  Check,
+  Camera,
+  Image as ImageIcon,
+  FilePlus,
+  UserPlus,
+  PlayCircle,
+  CheckSquare,
+  Flag,
+  Lock,
+  Eye,
+  EyeOff,
+  Fingerprint,
+  LogIn,
+  LogOut,
+  UserCog,
+  BellRing,
+  HelpCircle,
+  Smartphone
+} from 'lucide-react';
+
+// --- Helper Components ---
+
+const MenuItem = ({ item, onSelect }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (typeof item === 'string') {
+    return (
+      <li 
+        onClick={() => onSelect(item)}
+        className="text-sm text-slate-600 hover:text-indigo-600 cursor-pointer flex items-center gap-2 py-1.5 transition-colors"
+      >
+        <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+        {item}
+      </li>
+    );
+  }
+
+  return (
+    <li className="flex flex-col gap-1">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="text-sm font-bold text-slate-700 hover:text-indigo-600 cursor-pointer flex items-center justify-between w-full py-1.5 transition-colors group"
+      >
+        <div className="flex items-center gap-2">
+           <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isOpen ? 'bg-indigo-600' : 'bg-slate-400 group-hover:bg-indigo-400'}`}></div>
+           {item.title}
+        </div>
+        <ChevronDown size={14} className={`transition-transform duration-200 text-slate-400 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      
+      <div 
+        className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100 mb-2' : 'grid-rows-[0fr] opacity-0'}`}
+      >
+        <ul className="overflow-hidden pl-4 space-y-1 ml-0.5 border-l border-slate-200">
+          {item.subItems.map((subItem, idx) => (
+            <li 
+              key={idx} 
+              onClick={() => onSelect(subItem)}
+              className="text-xs text-slate-500 hover:text-indigo-600 font-medium cursor-pointer flex items-center gap-2 py-1.5 pl-3 transition-colors rounded-r-lg hover:bg-slate-50"
+            >
+              <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+              {subItem}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </li>
+  );
+};
+
+const ToolButton = ({ icon, label, onClick, bg = "bg-white", color = "text-slate-600" }) => (
+  <button onClick={onClick} className="flex flex-col items-center gap-2 group">
+    <div className={`w-16 h-16 rounded-2xl ${bg} border border-slate-100 shadow-sm flex items-center justify-center ${color} group-hover:text-indigo-600 group-hover:border-indigo-100 group-hover:shadow-md transition-all`}>
+      {React.cloneElement(icon, { strokeWidth: 1.5 })}
+    </div>
+    <span className="text-xs font-medium text-slate-600">{label}</span>
+  </button>
+);
+
+const NavButton = ({ active, onClick, icon, label }) => (
+  <button 
+    onClick={onClick}
+    className={`p-3 rounded-full transition-all flex items-center gap-2 ${active ? 'bg-slate-900 text-white shadow-lg px-4' : 'text-slate-400 hover:text-slate-600'}`}
+  >
+    {icon}
+    {active && label && <span className="text-sm font-bold pr-1">{label}</span>}
+  </button>
+);
+
+const StatusRow = ({ color, label, count }) => (
+  <div className="flex items-center justify-between py-1">
+    <div className="flex items-center gap-2">
+      <div className={`w-3 h-3 rounded-sm ${color}`}></div>
+      <span className="text-sm text-slate-600">{label}</span>
+    </div>
+    <span className="text-sm font-bold text-slate-800">{count}건</span>
+  </div>
+);
+
+// --- Main Component ---
+
+const SafetyAppPortfolio = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  
+  // 모니터링 뷰 상태
+  const [mapFilter, setMapFilter] = useState('all'); 
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [showDetailPanel, setShowDetailPanel] = useState(true);
+
+  // 작업허가서 필터 상태
+  const [activeSearchFilter, setActiveSearchFilter] = useState(null);
+  const [searchParams, setSearchParams] = useState({
+    startDate: '',
+    endDate: '',
+    workplace: '',
+    company: '',
+    keyword: '',
+    searchType: 'title'
+  });
+
+  // 작업허가서 신규 작성 상태
+  const [createTab, setCreateTab] = useState('permit'); // 'permit', 'risk', 'doc'
+  const [showReference, setShowReference] = useState(false); // 참고사항 토글
+  const [docMode, setDocMode] = useState('write'); // 'write', 'view'
+  const [showApproval, setShowApproval] = useState(false); // 결재선 모달 상태
+
+  // 외부공사 작업 리스트 상태
+  const [expandedWorkId, setExpandedWorkId] = useState(null);
+  const [externalWorkFilter, setExternalWorkFilter] = useState('전체'); // 외부공사 필터 상태
+  
+  // 외부공사 상세 데이터
+  const [selectedWorkDetail, setSelectedWorkDetail] = useState(null);
+
+  // Login Screen Component
+  const LoginScreen = ({ onLogin }) => {
+    const [showPassword, setShowPassword] = useState(false);
+    return (
+      <div className="flex flex-col h-full bg-slate-900 text-white relative overflow-hidden">
+        <div className="absolute top-[-10%] right-[-20%] w-96 h-96 bg-indigo-600 rounded-full mix-blend-overlay filter blur-[100px] opacity-40 animate-pulse"></div>
+        <div className="absolute bottom-[-10%] left-[-20%] w-80 h-80 bg-blue-600 rounded-full mix-blend-overlay filter blur-[80px] opacity-40"></div>
+        <div className="flex-1 flex flex-col justify-center px-8 z-10">
+          <div className="mb-10 text-center">
+             <div className="inline-flex p-4 bg-white/10 backdrop-blur-md rounded-3xl mb-6 shadow-2xl border border-white/10">
+                <Shield size={48} className="text-white" />
+             </div>
+             <h1 className="text-3xl font-bold mb-2">Safety First</h1>
+             <p className="text-slate-400 text-sm">안전환경통합전산시스템</p>
+          </div>
+          <div className="space-y-4">
+             <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                   <User size={20} className="text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
+                </div>
+                <input type="text" placeholder="사번 / 아이디" className="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" />
+             </div>
+             <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                   <Lock size={20} className="text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
+                </div>
+                <input type={showPassword ? "text" : "password"} placeholder="비밀번호" className="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-12 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" />
+                <button onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-white transition-colors">
+                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+             </div>
+             <div className="flex justify-between items-center text-xs text-slate-400 px-1">
+                <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
+                   <input type="checkbox" className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-600 focus:ring-offset-slate-900" />
+                   자동 로그인
+                </label>
+                <button className="hover:text-indigo-400 transition-colors">비밀번호 찾기</button>
+             </div>
+             <button onClick={onLogin} className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-900/50 active:scale-[0.98] transition-all flex justify-center items-center gap-2 mt-4">
+                <span>로그인</span>
+                <ChevronRight size={20} />
+             </button>
+             <div className="text-center mt-8">
+                <p className="text-slate-500 text-xs mb-4">또는 생체인증으로 로그인</p>
+                <button onClick={onLogin} className="p-4 bg-slate-800/50 rounded-full border border-slate-700 hover:bg-slate-700 hover:border-slate-600 transition-all group">
+                   <Fingerprint size={32} className="text-indigo-400 group-hover:text-white transition-colors" />
+                </button>
+             </div>
+          </div>
+        </div>
+        <div className="p-6 text-center z-10"><p className="text-slate-600 text-[10px]">COPYRIGHT © 2025 Digital SHM System</p></div>
+      </div>
+    );
+  };
+
+  // Data
+  const workPermitList = [
+    { id: 101, title: '제2공장 배관 용접 작업', type: '화기', company: '한성건설', writer: '김철수', date: '2024-10-24', period: '09:00 ~ 18:00', status: '승인대기', statusColor: 'bg-indigo-100 text-indigo-600' },
+    { id: 102, title: '전기실 변압기 교체 작업', type: '정전', company: '대일전기', writer: '이영희', date: '2024-10-24', period: '13:00 ~ 17:00', status: '작성중', statusColor: 'bg-slate-100 text-slate-500' },
+    { id: 103, title: '물류창고 지붕 보수', type: '고소', company: '안전제일', writer: '박민수', date: '2024-10-23', period: '08:00 ~ 17:00', status: '승인완료', statusColor: 'bg-green-100 text-green-600' },
+    { id: 104, title: '폐수처리장 탱크 청소', type: '밀폐', company: '청정환경', writer: '정지훈', date: '2024-10-22', period: '09:00 ~ 12:00', status: '반려', statusColor: 'bg-red-100 text-red-600' }
+  ];
+  const externalWorkList = [
+    { id: 69, site: '포항공장', status: '등록', company: '주식회사 티포엘', content: '사각힐 와인더 축해체 및 교체, 사각힐 이송대차 부품 교체', location: '포항공장 GFRP', tbm: '완료', workers: 4 },
+    { id: 68, site: '인천공장', status: '등록', company: '한성모방세', content: '100T 제강 현장 사무실 환경개선', location: '인천공장 100T', tbm: '완료', workers: 2 },
+    { id: 63, site: '포항공장', status: '작업중', company: '삼흥이엔지', content: '일반전기 단가작업', location: '포항공장 CS 정정', tbm: '완료', workers: 8 },
+    { id: 67, site: '포항공장', status: '등록', company: '해안파트너스', content: 'PCS라벨(12/4, 2근) 작업', location: '포항공장 형강정정', tbm: '미진행', workers: 1 }
+  ];
+  const systemMenuData = [
+    { id: 'access', title: '출입관리', icon: <QrCode size={20} />, items: ['안전작업허가서', { title: '일 안전작업허가서', subItems: ['외부공사.작업', '내부공사.작업(예시)'] }, '방문객 승인/반려', '차량/자재 반입신청', 'QR 출입증 발급'] },
+    { id: 'work_permit', title: '작업허가서', icon: <ClipboardList size={20} />, items: ['안전작업 허가 신청', '화기작업 허가', '밀폐공간 작업 허가', '고소작업 허가'] },
+    { id: 'ai_risk', title: 'AI 위험성 평가', icon: <Activity size={20} />, items: ['신규 평가 작성', '평가 이력 조회', 'AI 추천 대책 DB'] },
+    { id: 'dashboard', title: '대시보드 현황', icon: <Database size={20} />, items: ['전사 통합 현황', '부서별 무재해 현황', '실시간 모니터링', 'KPI 성과 지표'] },
+    { id: 'safety_system', title: '안전보건체계', icon: <Shield size={20} />, items: ['안전보건 매뉴얼', '법규 준수 검토', '내부 감사 관리', '경영방침 및 목표'] },
+    { id: 'ind_safety', title: '산업안전보건', icon: <HardHat size={20} />, items: ['위험성평가 관리', 'TBM 일지 관리', '안전교육 실시', '건강검진 관리'] },
+    { id: 'env_energy', title: '환경/에너지', icon: <Zap size={20} />, items: ['대기오염 배출 관리', '수질오염 관리', '폐기물 처리 실적', '에너지 사용량'] },
+    { id: 'facility', title: '시설/장비', icon: <Truck size={20} />, items: ['장비 사용 계획서', '설비 점검 이력', '유해위험기계 관리', '검사 일정표'] },
+    { id: 'improvement', title: '개선 조치', icon: <Settings size={20} />, items: ['유해위험요인 신고', '부적합 사항 개선', '아차사고 발굴', '작업중지 요청'] },
+    { id: 'library', title: '자료실', icon: <FileText size={20} />, items: ['표준 서식 다운로드', '안전 교육 자료', '법령 개정 사항', '사고 사례 전파'] }
+  ];
+  const mapMarkers = [
+    { id: 1, x: 30, y: 40, type: 'fire', title: '제2공구 용접', status: '진행중', workers: 3 },
+    { id: 2, x: 60, y: 30, type: 'high', title: '외벽 도색', status: '준비', workers: 2 },
+    { id: 3, x: 75, y: 65, type: 'normal', title: '자재 정리', status: '진행중', workers: 4 },
+    { id: 4, x: 20, y: 70, type: 'danger', title: '고압선 점검', status: '주의', workers: 2 }
+  ];
+  const relatedDocs = [
+    { id: 1, title: '외주안전관리계획서 (표준양식).pptx', size: '5.6MB', date: '2025-03-14 13:10', user: '조찬형', type: 'ppt' },
+    { id: 2, title: '당진공장 작업계획서 (차량계 하역운반, 건설기계...).xlsx', size: '146.8KB', date: '2025-03-13 15:20', user: '조찬형', type: 'xls' },
+    { id: 3, title: '외주공사 안전보건 협의체 회의록_전사공통.xlsx', size: '21.4KB', date: '2025-01-03 16:55', user: '양두경', type: 'xls' }
+  ];
+
+  // Event Handlers
+  const handleQuickToolClick = (categoryId) => {
+    if (categoryId === 'work_permit') { setActiveTab('permit_list'); return; }
+    const category = systemMenuData.find(c => c.id === categoryId);
+    if (category) { setSelectedCategory(category.id); setActiveTab('list'); }
+  };
+  const handleMenuItemClick = (itemText) => {
+    if (itemText === '실시간 모니터링') { setActiveTab('monitoring'); setSelectedMarker(null); }
+    else if (itemText === '안전작업 허가 신청' || itemText === '안전작업허가서') { setActiveTab('permit_list'); }
+    else if (itemText === '외부공사.작업') { setActiveTab('external_work'); }
+  };
+  const handleExternalWorkDetail = (workData) => { setSelectedWorkDetail(workData); setActiveTab('external_work_detail'); };
+  const toggleSearchFilter = (filterName) => { activeSearchFilter === filterName ? setActiveSearchFilter(null) : setActiveSearchFilter(filterName); };
+  const handleLogout = () => { setIsLoggedIn(false); setActiveTab('home'); setExpandedWorkId(null); setSelectedWorkDetail(null); };
+
+  const renderFilterPanel = () => {
+    if (!activeSearchFilter) return null;
+    return (
+      <div className="px-6 pb-4 pt-2 bg-white border-b border-slate-100 animate-in slide-in-from-top-2 duration-200">
+        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+          {activeSearchFilter === 'filter' && (
+            <div className="flex flex-col gap-3"><label className="text-xs font-bold text-slate-500">검색 조건</label><div className="flex gap-2"><select className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 w-1/3 focus:outline-none focus:border-indigo-500" defaultValue={searchParams.searchType} onChange={(e) => setSearchParams({...searchParams, searchType: e.target.value})}><option value="title">제목</option><option value="writer">작성자</option><option value="number">허가번호</option></select><input type="text" placeholder="검색어를 입력하세요" className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500" defaultValue={searchParams.keyword} onChange={(e) => setSearchParams({...searchParams, keyword: e.target.value})} /></div></div>
+          )}
+          {activeSearchFilter === 'date' && (
+            <div className="flex flex-col gap-3"><label className="text-xs font-bold text-slate-500">조회 기간</label><div className="flex items-center gap-2"><input type="date" className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500 text-slate-600" defaultValue={searchParams.startDate} onChange={(e) => setSearchParams({...searchParams, startDate: e.target.value})} /><span className="text-slate-400">~</span><input type="date" className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500 text-slate-600" defaultValue={searchParams.endDate} onChange={(e) => setSearchParams({...searchParams, endDate: e.target.value})} /></div></div>
+          )}
+          {activeSearchFilter === 'place' && (
+            <div className="flex flex-col gap-3"><label className="text-xs font-bold text-slate-500">사업장 선택</label><select className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500 text-slate-700" defaultValue={searchParams.workplace} onChange={(e) => setSearchParams({...searchParams, workplace: e.target.value})}><option value="">전체 사업장</option><option value="dangjin">당진공장</option><option value="pohang">포항공장</option><option value="incheon">인천공장</option><option value="rnd">중앙기술연구소</option></select></div>
+          )}
+          {activeSearchFilter === 'company' && (
+            <div className="flex flex-col gap-3"><label className="text-xs font-bold text-slate-500">협력업체명</label><div className="relative"><User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" placeholder="업체명을 입력하세요" className="bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm w-full focus:outline-none focus:border-indigo-500" defaultValue={searchParams.company} onChange={(e) => setSearchParams({...searchParams, company: e.target.value})} /></div></div>
+          )}
+          <div className="flex gap-2 mt-4"><button onClick={() => setActiveSearchFilter(null)} className="flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50">닫기</button><button onClick={() => { setActiveSearchFilter(null); alert('검색 조건이 적용되었습니다.'); }} className="flex-1 py-2 bg-indigo-600 rounded-lg text-xs font-bold text-white hover:bg-indigo-700 flex items-center justify-center gap-1"><SearchIcon size={14} /> 검색 적용</button></div>
+        </div>
+      </div>
+    );
+  };
+
+  const filteredExternalWorkList = externalWorkList.filter(item => {
+    if (externalWorkFilter === '전체') return true;
+    return item.status === externalWorkFilter;
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center font-sans text-slate-800">
+      <div className="w-full max-w-md h-[100dvh] bg-slate-50 shadow-2xl overflow-hidden relative flex flex-col">
+        {!isLoggedIn ? (
+          <LoginScreen onLogin={() => setIsLoggedIn(true)} />
+        ) : (
+          <>
+            {activeTab === 'home' && (
+              <div className="bg-[#1e293b] text-white pt-12 pb-8 px-6 rounded-b-[40px] shadow-2xl z-10 relative overflow-hidden shrink-0">
+                <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-indigo-500 rounded-full mix-blend-overlay filter blur-3xl opacity-20 animate-pulse"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-48 h-48 bg-blue-600 rounded-full mix-blend-overlay filter blur-2xl opacity-20"></div>
+                <div className="flex justify-between items-center mb-8 relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 p-[2px]"><div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center text-white font-bold text-sm">HM</div></div>
+                    <div><p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">안전관리팀 / 책임</p><h1 className="text-lg font-bold">허 민 님</h1></div>
+                  </div>
+                  <button className="p-2 bg-slate-800/50 rounded-full hover:bg-slate-700 transition-colors relative backdrop-blur-md"><Bell size={20} className="text-slate-300" /><span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span><span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full"></span></button>
+                </div>
+                <div className="flex gap-3 mb-2 relative z-10">
+                  <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/5"><div className="flex items-start justify-between mb-2"><span className="text-slate-300 text-xs">무재해 달성</span><ArrowUpRight size={16} className="text-green-400" /></div><p className="text-2xl font-bold">342 <span className="text-sm font-normal text-slate-400">일째</span></p></div>
+                  <div className="flex-1 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-4 shadow-lg shadow-indigo-900/50"><div className="flex items-start justify-between mb-2"><span className="text-indigo-100 text-xs">위험성 평가</span><CheckCircle2 size={16} className="text-white" /></div><p className="text-2xl font-bold text-white">98 <span className="text-sm font-normal text-indigo-200">점</span></p></div>
+                </div>
+              </div>
+            )}
+
+            <div className={`flex-1 overflow-hidden z-0 flex flex-col ${activeTab === 'home' ? '-mt-6 pt-8 px-6 overflow-y-auto' : ''}`}>
+              {activeTab === 'home' && (
+                <div className="pb-24">
+                  <div className="mb-8">
+                    <div className="flex justify-between items-end mb-4"><h2 className="text-xl font-bold text-slate-900">알림 센터 <span className="text-red-500 text-sm align-top">New 2</span></h2><span className="text-xs text-slate-500 font-medium">오늘의 작업 허가 <span className="text-indigo-600 font-bold">12</span>건</span></div>
+                    <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-100 mb-3 flex items-start gap-4 cursor-pointer hover:bg-red-100/50 transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 mt-1"><AlertCircle size={22} /></div>
+                      <div className="flex-1"><div className="flex justify-between items-start"><span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full mb-1 inline-block">긴급</span><span className="text-[10px] text-slate-400">방금 전</span></div><h3 className="font-bold text-slate-800 text-sm leading-snug">제2공장 전기실 작업중지 요청</h3><p className="text-xs text-slate-500 mt-1">안전팀 확인 요망</p></div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-start gap-4 cursor-pointer hover:border-indigo-200 transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-1"><ClipboardList size={22} /></div>
+                      <div className="flex-1"><div className="flex justify-between items-start"><span className="text-[10px] text-slate-400">1시간 전</span></div><h3 className="font-bold text-slate-800 text-sm">금일 TBM 실시 결과 보고 완료</h3><p className="text-xs text-slate-500 mt-1">보고서 확인하기</p></div>
+                    </div>
+                  </div>
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold text-slate-900">바로가기</h2><button onClick={() => setActiveTab('list')} className="text-slate-400 hover:text-indigo-600 transition-colors"><MoreHorizontal size={20} /></button></div>
+                    <div className="grid grid-cols-4 gap-4">
+                      <ToolButton icon={<HardHat size={24} />} label="작업허가" onClick={() => handleQuickToolClick('work_permit')} />
+                      <ToolButton icon={<Truck size={24} />} label="장비계획" onClick={() => handleQuickToolClick('facility')} />
+                      <ToolButton icon={<Activity size={24} />} label="위험성평가" onClick={() => handleQuickToolClick('ai_risk')} />
+                      <ToolButton icon={<Menu size={24} />} label="전체메뉴" onClick={() => setActiveTab('list')} bg="bg-slate-50" color="text-slate-400" />
+                    </div>
+                  </div>
+                  <div className="bg-indigo-900 rounded-2xl p-5 text-white flex justify-between items-center"><div><span className="text-[10px] bg-indigo-800 px-2 py-1 rounded text-indigo-200">공지</span><p className="text-sm font-bold mt-2">동절기 화재 예방 특별 점검</p></div><ChevronRight className="text-indigo-400" size={20} /></div>
+                </div>
+              )}
+
+              {activeTab === 'monitoring' && (
+                <div className="relative w-full h-full flex flex-col bg-slate-100">
+                  <div className="absolute top-0 left-0 w-full z-20 px-6 pt-12 pb-4 bg-gradient-to-b from-slate-900/90 to-transparent pointer-events-none">
+                      <div className="flex items-center justify-between pointer-events-auto">
+                        <button onClick={() => setActiveTab('home')} className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30"><X size={20} /></button>
+                        <div className="flex flex-col items-center"><span className="text-white/80 text-[10px] font-bold uppercase tracking-widest">Live Monitoring</span><div className="flex items-center gap-1 text-white font-bold text-lg cursor-pointer">당진공장 (전체) <ChevronDown size={16} /></div></div>
+                        <button className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30"><Settings size={20} /></button>
+                      </div>
+                  </div>
+                  <div className="absolute top-28 left-0 w-full z-10 px-6 flex gap-2 overflow-x-auto no-scrollbar">{['전체', '외부작업', '내부작업', '장비'].map((filter, idx) => (<button key={idx} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border shadow-sm transition-all ${idx === 0 ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white/90 border-slate-200 text-slate-600'}`}>{filter}</button>))}</div>
+                  <div className="flex-1 overflow-auto bg-[#e2e8f0] relative cursor-grab active:cursor-grabbing">
+                      <div className="w-[800px] h-[800px] relative bg-[#f1f5f9] grid grid-cols-12 grid-rows-12 gap-1 p-10 origin-top-left">
+                        <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+                        <div className="col-start-2 col-end-5 row-start-2 row-end-10 bg-white border-2 border-slate-300 rounded-lg shadow-sm flex items-center justify-center text-slate-300 font-bold text-4xl">A</div>
+                        <div className="col-start-5 col-end-9 row-start-6 row-end-9 bg-white border-2 border-slate-300 rounded-lg shadow-sm flex items-center justify-center text-slate-300 font-bold text-4xl">B</div>
+                        <div className="col-start-5 col-end-8 row-start-2 row-end-6 bg-slate-200 border-2 border-slate-300 rounded-lg border-dashed flex items-center justify-center text-slate-400 font-bold">주차장</div>
+                        <div className="col-start-9 col-end-12 row-start-4 row-end-9 bg-white border-2 border-slate-300 rounded-lg shadow-sm flex items-center justify-center text-slate-300 font-bold text-4xl">C</div>
+                        <div className="col-start-2 col-end-12 row-start-10 row-end-12 bg-white border-2 border-slate-300 rounded-lg shadow-sm flex items-center justify-center text-slate-300 font-bold text-4xl">물류창고</div>
+                        {mapMarkers.map((marker) => (
+                          <button key={marker.id} onClick={() => setSelectedMarker(marker)} className={`absolute w-10 h-10 -ml-5 -mt-5 rounded-full shadow-lg border-2 border-white flex items-center justify-center transition-transform hover:scale-110 active:scale-95 z-10 ${marker.type === 'fire' ? 'bg-red-500 text-white animate-pulse' : marker.type === 'danger' ? 'bg-orange-500 text-white' : marker.type === 'high' ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'}`} style={{ left: `${marker.x}%`, top: `${marker.y}%` }}>
+                              {marker.type === 'fire' ? <Flame size={18} fill="currentColor" /> : marker.type === 'danger' ? <Zap size={18} fill="currentColor" /> : marker.type === 'high' ? <Navigation size={18} className="rotate-45" /> : <HardHat size={18} />}
+                          </button>
+                        ))}
+                      </div>
+                  </div>
+                  <div className={`absolute bottom-0 left-0 w-full bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-300 z-20 ${showDetailPanel ? 'translate-y-0' : 'translate-y-[85%]'}`}>
+                      <div className="w-full h-8 flex items-center justify-center cursor-pointer" onClick={() => setShowDetailPanel(!showDetailPanel)}><div className="w-12 h-1 bg-slate-300 rounded-full"></div></div>
+                      <div className="px-6 pb-8">
+                        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg text-slate-900">당진공장 (전체)</h3><button className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">데이터 불러오기</button></div>
+                        <div className="grid grid-cols-4 gap-2 mb-6">
+                            <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100"><p className="text-xs text-slate-400 mb-1">전체</p><p className="text-xl font-bold text-slate-800">11</p></div>
+                             <div className="bg-red-50 rounded-xl p-3 text-center border border-red-100"><p className="text-xs text-red-400 mb-1">화기</p><p className="text-xl font-bold text-red-600">2</p></div>
+                             <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100"><p className="text-xs text-blue-400 mb-1">고소</p><p className="text-xl font-bold text-blue-600">1</p></div>
+                             <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-100"><p className="text-xs text-orange-400 mb-1">밀폐</p><p className="text-xl font-bold text-orange-600">0</p></div>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto"><StatusRow color="bg-slate-600" label="일반작업" count={4} /><StatusRow color="bg-red-500" label="화기작업" count={2} /><StatusRow color="bg-yellow-500" label="고소작업" count={1} /></div>
+                      </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'permit_list' && (
+                <div className="relative w-full h-full flex flex-col bg-slate-50">
+                  <div className="bg-white px-6 pt-12 pb-2 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3"><button onClick={() => setActiveTab('home')} className="p-2 -ml-2 hover:bg-slate-50 rounded-full text-slate-600"><ChevronLeft size={24} /></button><h2 className="text-xl font-bold text-slate-900">안전작업허가서</h2></div>
+                      <button onClick={() => setSearchParams({startDate: '', endDate: '', workplace: '', company: '', keyword: '', searchType: 'title'})} className="text-slate-400 hover:text-indigo-600 p-2"><RefreshCw size={20} /></button>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
+                      <button onClick={() => toggleSearchFilter('filter')} className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 whitespace-nowrap"><Filter size={14} /> 검색조건</button>
+                      <button onClick={() => toggleSearchFilter('date')} className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 whitespace-nowrap"><Calendar size={14} /> 날짜</button>
+                      <button onClick={() => toggleSearchFilter('place')} className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 whitespace-nowrap"><Briefcase size={14} /> 사업장</button>
+                      <button onClick={() => toggleSearchFilter('company')} className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 whitespace-nowrap"><User size={14} /> 업체명</button>
+                    </div>
+                  </div>
+                  {renderFilterPanel()}
+                  <div className="flex-1 overflow-y-auto px-6 py-4 pb-28">
+                     <div className="space-y-4">
+                        {workPermitList.map((item) => (
+                          <div key={item.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 active:scale-[0.98] transition-transform duration-200 cursor-pointer">
+                             <div className="flex justify-between items-start mb-3">
+                                <div className="flex gap-2"><span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${item.statusColor}`}>{item.status}</span><span className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-500">{item.type}</span></div>
+                                <button className="text-slate-300 hover:text-slate-600"><MoreVertical size={16} /></button>
+                             </div>
+                             <h3 className="text-base font-bold text-slate-900 mb-1">{item.title}</h3>
+                             <p className="text-xs text-slate-400 mb-4">{item.period}</p>
+                             <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                                <div className="flex items-center gap-2"><span className="text-xs font-medium text-slate-600">{item.company}</span><span className="w-1 h-1 rounded-full bg-slate-300"></span><span className="text-xs text-slate-400">{item.writer}</span></div>
+                                <span className="text-xs text-slate-400 font-mono">{item.date}</span>
+                             </div>
+                          </div>
+                        ))}
+                     </div>
+                  </div>
+                  <div className="absolute bottom-24 right-6 pointer-events-none">
+                     <button onClick={() => setActiveTab('permit_create')} className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-lg shadow-indigo-300 transition-all hover:scale-110 active:scale-95 flex items-center gap-2 pr-6">
+                        <Plus size={24} /> <span className="font-bold text-sm">신규작성</span>
+                     </button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'external_work' && (
+                <div className="relative w-full h-full flex flex-col bg-slate-50">
+                  <div className="bg-white/80 backdrop-blur-md px-6 pt-12 pb-4 sticky top-0 z-20 border-b border-slate-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                         <button onClick={() => setActiveTab('home')} className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"><ChevronLeft size={24} /></button>
+                         <div><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">External Works</span><h2 className="text-xl font-bold text-slate-900">외부공사·작업</h2></div>
+                      </div>
+                      <button className="bg-slate-900 text-white p-2.5 rounded-xl shadow-lg shadow-slate-300 hover:scale-105 transition-transform"><Search size={20} /></button>
+                    </div>
+                    <div className="flex p-1 bg-slate-100 rounded-xl">
+                       {['전체', '등록', '작업중', '완료'].map((filter) => (
+                          <button key={filter} onClick={() => setExternalWorkFilter(filter)} className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${externalWorkFilter === filter ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{filter}</button>
+                       ))}
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-6 py-6 pb-28 space-y-4">
+                     {filteredExternalWorkList.length === 0 ? (
+                        <div className="h-40 flex flex-col items-center justify-center text-slate-400"><FileText size={40} className="mb-2 opacity-20" /><p className="text-sm">해당 상태의 작업이 없습니다.</p></div>
+                     ) : (
+                        filteredExternalWorkList.map((item) => {
+                          const isExpanded = expandedWorkId === item.id;
+                          const statusColor = item.status === '작업중' ? 'bg-orange-500' : item.status === '완료' ? 'bg-green-500' : 'bg-indigo-500';
+                          const statusBg = item.status === '작업중' ? 'bg-orange-50' : item.status === '완료' ? 'bg-green-50' : 'bg-indigo-50';
+                          const statusText = item.status === '작업중' ? 'text-orange-600' : item.status === '완료' ? 'text-green-600' : 'text-indigo-600';
+
+                          return (
+                            <div key={item.id} onClick={() => setExpandedWorkId(isExpanded ? null : item.id)} className={`relative bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'ring-2 ring-indigo-500/20 shadow-md scale-[1.01]' : 'active:scale-[0.98]'}`}>
+                                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusColor}`}></div>
+                                <div className="p-5 pl-7">
+                                  <div className="flex justify-between items-start mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusBg} ${statusText}`}>{item.status}</span>
+                                        <span className="text-xs font-bold text-slate-400 flex items-center gap-1"><Building size={10} /> {item.site}</span>
+                                      </div>
+                                      {item.tbm === '완료' ? <div className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><CheckCircle2 size={10} /> TBM</div> : <div className="flex items-center gap-1 text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full"><AlertCircle size={10} /> TBM</div>}
+                                  </div>
+                                  <h3 className="text-base font-bold text-slate-900 mb-1 leading-tight">{item.content}</h3>
+                                  <p className="text-xs font-medium text-slate-500 mb-3">{item.company}</p>
+                                  <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-4 text-xs text-slate-400">
+                                        <span className="flex items-center gap-1"><MapPin size={12} /> {item.location}</span>
+                                        <span className="flex items-center gap-1"><Users size={12} /> {item.workers}명</span>
+                                      </div>
+                                      <ChevronDown size={16} className={`text-slate-300 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                                  </div>
+                                </div>
+                                <div className={`bg-slate-50 border-t border-slate-100 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-60' : 'max-h-0'}`}>
+                                  <div className="p-5 pl-7 grid grid-cols-2 gap-4">
+                                      <button onClick={(e) => { e.stopPropagation(); handleExternalWorkDetail(item); }} className="flex flex-col items-center justify-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm active:bg-slate-50">
+                                        <FileText size={20} className="text-indigo-500 mb-1" /><span className="text-[10px] font-bold text-slate-600">허가서 보기</span>
+                                      </button>
+                                      <button className="flex flex-col items-center justify-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm active:bg-slate-50">
+                                        <Users size={20} className="text-green-500 mb-1" /><span className="text-[10px] font-bold text-slate-600">출입자 관리</span>
+                                      </button>
+                                      <button className="flex flex-col items-center justify-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm active:bg-slate-50">
+                                        <MapIcon size={20} className="text-orange-500 mb-1" /><span className="text-[10px] font-bold text-slate-600">위치 확인</span>
+                                      </button>
+                                      <button className="flex flex-col items-center justify-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm active:bg-slate-50">
+                                        <MoreHorizontal size={20} className="text-slate-400 mb-1" /><span className="text-[10px] font-bold text-slate-600">더보기</span>
+                                      </button>
+                                  </div>
+                                </div>
+                            </div>
+                          );
+                        })
+                     )}
+                  </div>
+                  <div className="absolute bottom-24 right-6 pointer-events-none">
+                     <button className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-lg shadow-indigo-300 transition-all hover:scale-110 active:scale-95 flex items-center gap-2 pr-6">
+                        <Plus size={24} /> <span className="font-bold text-sm">작업등록</span>
+                     </button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'external_work_detail' && selectedWorkDetail && (
+                 <div className="relative w-full h-full flex flex-col bg-slate-50">
+                    <div className="bg-white/80 backdrop-blur-md px-6 pt-12 pb-4 sticky top-0 z-20 border-b border-slate-100">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => setActiveTab('external_work')} className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"><ChevronLeft size={24} /></button>
+                          <div><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Detail View</span><h2 className="text-lg font-bold text-slate-900">외부공사·작업 상세</h2></div>
+                        </div>
+                        <button className="text-slate-400 hover:text-indigo-600 p-2"><MoreVertical size={20} /></button>
+                      </div>
+                      
+                      <div className="relative px-4 mb-6 mt-4">
+                         {(() => {
+                            const steps = ['등록', '접수', '작업중', '작업완료', '종결'];
+                            let currentStepIdx = 0;
+                            if (selectedWorkDetail.status === '등록' || selectedWorkDetail.status === '미진행') currentStepIdx = 0;
+                            else if (selectedWorkDetail.status === '접수') currentStepIdx = 1;
+                            else if (selectedWorkDetail.status === '작업중') currentStepIdx = 2;
+                            else if (selectedWorkDetail.status === '완료' || selectedWorkDetail.status === '작업완료') currentStepIdx = 3;
+                            else if (selectedWorkDetail.status === '종결') currentStepIdx = 4;
+                            
+                            const progressPercentage = (currentStepIdx / (steps.length - 1)) * 100;
+
+                            return (
+                              <>
+                                 <div className="absolute top-[14px] left-4 right-4 h-1 bg-slate-100 rounded-full z-0"></div>
+                                 <div className="absolute top-[14px] left-4 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full z-0 transition-all duration-1000 ease-out" style={{ width: `calc(${progressPercentage}% - 2rem)` }}></div>
+                                 <div className="flex justify-between relative z-10">
+                                    {steps.map((step, idx) => {
+                                       const isCompleted = idx < currentStepIdx;
+                                       const isActive = idx === currentStepIdx;
+                                       const StepIcon = [FilePlus, FileCheck, Activity, CheckSquare, Flag][idx];
+                                       return (
+                                          <div key={idx} className="flex flex-col items-center gap-2 w-10">
+                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : ''} ${isActive ? 'bg-white border-indigo-600 text-indigo-600 scale-110 shadow-lg shadow-indigo-200 ring-4 ring-indigo-50' : ''} ${!isCompleted && !isActive ? 'bg-white border-slate-200 text-slate-300' : ''}`}>
+                                                {isCompleted ? <Check size={14} strokeWidth={3} /> : isActive ? <StepIcon size={16} className="animate-pulse" /> : <div className="w-2 h-2 rounded-full bg-current" />}
+                                             </div>
+                                             <span className={`text-[10px] font-bold transition-colors duration-300 whitespace-nowrap ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}>{step}</span>
+                                          </div>
+                                       )
+                                    })}
+                                 </div>
+                              </>
+                            );
+                         })()}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-6 py-6 pb-28 space-y-6">
+                       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                          <div className="flex justify-between items-start mb-4">
+                             <div><span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md mb-2 inline-block">허가 신청자</span><h3 className="text-xl font-bold text-slate-900 leading-tight">주식회사 티포엘</h3></div>
+                             <div className="text-right"><p className="text-xs text-slate-400">작성일</p><p className="text-sm font-bold text-slate-700">2025-12-04</p></div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-xs">
+                             <div><p className="text-slate-400 mb-1">사업장</p><p className="font-bold text-slate-700">{selectedWorkDetail.site}</p></div>
+                             <div><p className="text-slate-400 mb-1">작성자</p><p className="font-bold text-slate-700">임무현</p></div>
+                          </div>
+                       </div>
+                       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                          <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2"><Briefcase size={16} className="text-indigo-500" /> 작업 정보</h4>
+                          <div className="space-y-4">
+                             <div className="bg-slate-50 p-3 rounded-xl"><p className="text-xs text-slate-400 mb-1">작업명</p><p className="text-sm font-bold text-slate-800">{selectedWorkDetail.content}</p></div>
+                             <div className="flex gap-3">
+                                <div className="flex-1 bg-slate-50 p-3 rounded-xl"><p className="text-xs text-slate-400 mb-1">허가번호</p><p className="text-xs font-bold text-slate-700">2025-1021-005</p></div>
+                                <div className="flex-1 bg-slate-50 p-3 rounded-xl"><p className="text-xs text-slate-400 mb-1">작업장소</p><p className="text-xs font-bold text-slate-700">{selectedWorkDetail.location}</p></div>
+                             </div>
+                             <div>
+                                <p className="text-xs text-slate-400 mb-2">작업기간</p>
+                                <div className="flex items-center gap-2 text-sm font-bold text-slate-700"><Calendar size={16} className="text-slate-400" /><span>2024-12-04 10:00 ~ 18:00</span></div>
+                             </div>
+                          </div>
+                       </div>
+                       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                          <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2"><Phone size={16} className="text-green-500" /> 안전관계자</h4>
+                          <div className="space-y-3">
+                             {['감독자: 임기우', '공사감독: 이주수', '안전감독: 정우진'].map((person, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
+                                   <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">{person.split(':')[1].trim()[0]}</div>
+                                      <div><p className="text-xs font-bold text-slate-700">{person.split(':')[0]}</p><p className="text-xs text-slate-500">{person.split(':')[1]}</p></div>
+                                   </div>
+                                   <button className="p-2 bg-green-50 text-green-600 rounded-full hover:bg-green-100"><Phone size={16} /></button>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                       <div>
+                          <h4 className="text-sm font-bold text-slate-900 mb-3 px-1 flex items-center gap-2"><Users size={16} className="text-orange-500" /> 투입 작업자</h4>
+                          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                             {[1,2,3,4].map((i) => (
+                                <div key={i} className="min-w-[120px] bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center gap-2">
+                                   <div className="w-10 h-10 rounded-full bg-orange-50 border-2 border-white shadow-sm flex items-center justify-center text-orange-600 font-bold">김</div>
+                                   <p className="text-xs font-bold text-slate-700">김작업</p>
+                                   <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">이수완료</span>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                          <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2"><Camera size={16} className="text-blue-500" /> 작업 사진</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                             <div className="aspect-square bg-slate-100 rounded-xl flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200"><ImageIcon size={24} className="mb-2" /><span className="text-[10px]">작업 전</span></div>
+                             <div className="aspect-square bg-slate-100 rounded-xl flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200"><ImageIcon size={24} className="mb-2" /><span className="text-[10px]">작업 후</span></div>
+                          </div>
+                       </div>
+                    </div>
+                    <div className="bg-white border-t border-slate-200 p-4 pb-6 sticky bottom-0 z-30">
+                       <div className="flex gap-3">
+                          <button className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm">수정요청</button>
+                          <button className="flex-[2] py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200">작업승인</button>
+                       </div>
+                    </div>
+                 </div>
+              )}
+
+              {activeTab === 'permit_create' && (
+                <div className="relative w-full h-full flex flex-col bg-slate-50">
+                   <div className="bg-white px-6 pt-12 pb-4 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+                      <div className="flex items-center justify-between mb-0">
+                         <div className="flex items-center gap-2">
+                            <button onClick={() => setActiveTab('permit_list')} className="p-2 -ml-2 rounded-full hover:bg-slate-50 text-slate-600"><ChevronLeft size={24} /></button>
+                            <h2 className="text-lg font-bold text-slate-900">작업허가서 작성</h2>
+                         </div>
+                         <div className="flex gap-2">
+                           <button onClick={() => setShowApproval(true)} className="text-slate-500 hover:text-indigo-600 p-2 text-xs font-bold bg-slate-100 rounded-lg flex items-center gap-1"><UserCheck size={16} /> 결재선</button>
+                           <button className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"><Save size={16} /> 저장</button>
+                         </div>
+                      </div>
+                      <div className="flex p-1 bg-slate-100 rounded-xl mt-4">
+                         <button onClick={() => setCreateTab('permit')} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${createTab === 'permit' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>작업허가서</button>
+                         <button onClick={() => setCreateTab('risk')} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${createTab === 'risk' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>위험성평가</button>
+                         <button onClick={() => setCreateTab('doc')} className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${createTab === 'doc' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>서류평가</button>
+                      </div>
+                   </div>
+                   <div className="flex-1 overflow-y-auto px-6 py-6 pb-28">
+                      {createTab === 'permit' && (
+                         <section className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-6">
+                            <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2"><div className="w-1 h-4 bg-indigo-600 rounded-full"></div>기본 정보 (공통)</h3>
+                             <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div><label className="text-xs font-bold text-slate-500 mb-1 block">사업장명</label><input type="text" value="당진공장" readOnly className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500" /></div>
+                                  <div><label className="text-xs font-bold text-slate-500 mb-1 block">발주부서</label><input type="text" defaultValue="안전관리팀" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm" /></div>
+                                </div>
+                             </div>
+                         </section>
+                      )}
+                   </div>
+                   {showApproval && (
+                     <div className="absolute inset-0 z-50">
+                       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowApproval(false)}></div>
+                       <div className="absolute bottom-0 left-0 w-full bg-white rounded-t-3xl shadow-2xl p-6 animate-in slide-in-from-bottom duration-300">
+                          <h3 className="text-lg font-bold text-slate-900 mb-6">결재선 (Approval Line)</h3>
+                       </div>
+                     </div>
+                   )}
+                </div>
+              )}
+
+              {activeTab === 'qr' && (
+                <div className="h-full px-6 flex flex-col items-center justify-center pb-20 animate-in fade-in slide-in-from-bottom-4 duration-300 pt-12">
+                   <h2 className="text-xl font-bold mb-6 text-slate-800">모바일 출입증</h2>
+                   <div className="w-full bg-gradient-to-b from-[#6366f1] to-[#4f46e5] rounded-[32px] p-6 shadow-2xl shadow-indigo-200 relative overflow-hidden text-center text-white">
+                      <div className="absolute top-0 left-0 w-full h-2 bg-white/20"></div>
+                      <div className="mb-2 mt-2">
+                         <div className="flex items-center justify-center gap-2 text-indigo-100 text-sm font-medium tracking-widest uppercase mb-6"><Shield size={14} /> Mobile Access Pass</div>
+                         <div className="bg-white p-4 rounded-3xl inline-block shadow-lg mb-6"><QrCode size={160} className="text-slate-900" /></div>
+                         <h3 className="text-2xl font-bold mb-1">허 민 (관리자)</h3>
+                         <p className="text-indigo-200 text-sm mb-6">안전관리팀 / 책임</p>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {activeTab === 'list' && (
+                <div className="pb-24 px-6 pt-12 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900">전체 메뉴</h2>
+                    <button onClick={() => setActiveTab('home')} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={20} /></button>
+                  </div>
+                  <div className="space-y-3">
+                    {systemMenuData.map((category) => {
+                       const isOpen = selectedCategory === category.id;
+                       return (
+                        <div key={category.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all duration-300">
+                          <button onClick={() => setSelectedCategory(isOpen ? null : category.id)} className={`w-full flex items-center justify-between p-5 text-left transition-colors ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`}>
+                            <div className="flex items-center gap-4">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isOpen ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-500'}`}>{category.icon}</div>
+                              <span className={`font-bold text-base ${isOpen ? 'text-indigo-900' : 'text-slate-700'}`}>{category.title}</span>
+                            </div>
+                            <ChevronDown size={20} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          <div className={`bg-slate-50/50 px-5 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[500px] py-4 border-t border-slate-100' : 'max-h-0 py-0'}`}>
+                            <ul className="space-y-2 pl-14">
+                              {category.items.map((item, idx) => <MenuItem key={idx} item={item} onSelect={handleMenuItemClick} />)}
+                            </ul>
+                          </div>
+                        </div>
+                       );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'mypage' && (
+                <div className="relative w-full h-full flex flex-col bg-slate-50">
+                   <div className="bg-white px-6 pt-12 pb-4 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+                      <div className="flex items-center justify-between mb-0">
+                         <div className="flex items-center gap-2">
+                            <button onClick={() => setActiveTab('home')} className="p-2 -ml-2 rounded-full hover:bg-slate-50 text-slate-600"><ChevronLeft size={24} /></button>
+                            <h2 className="text-lg font-bold text-slate-900">마이페이지</h2>
+                         </div>
+                      </div>
+                   </div>
+                   <div className="flex-1 overflow-y-auto px-6 py-6 pb-28">
+                      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-6 flex items-center gap-4">
+                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 p-[2px]">
+                            <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-indigo-600 font-bold text-xl">HM</div>
+                         </div>
+                         <div>
+                            <h3 className="text-lg font-bold text-slate-900">허 민</h3>
+                            <p className="text-xs text-slate-500">안전관리팀 / 책임</p>
+                            <button className="text-xs text-indigo-600 font-bold mt-1 flex items-center gap-1">프로필 수정 <ChevronRight size={12} /></button>
+                         </div>
+                      </div>
+                      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden mb-6">
+                         <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-50">
+                            <div className="flex items-center gap-3"><div className="p-2 bg-slate-100 rounded-lg text-slate-600"><UserCog size={18} /></div><span className="text-sm font-bold text-slate-700">계정 설정</span></div>
+                            <ChevronRight size={16} className="text-slate-400" />
+                         </button>
+                         <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-50">
+                            <div className="flex items-center gap-3"><div className="p-2 bg-slate-100 rounded-lg text-slate-600"><BellRing size={18} /></div><span className="text-sm font-bold text-slate-700">알림 설정</span></div>
+                            <div className="flex items-center gap-2"><span className="text-xs text-slate-400">ON</span><ChevronRight size={16} className="text-slate-400" /></div>
+                         </button>
+                         <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-50">
+                            <div className="flex items-center gap-3"><div className="p-2 bg-slate-100 rounded-lg text-slate-600"><Smartphone size={18} /></div><span className="text-sm font-bold text-slate-700">기기 관리</span></div>
+                            <ChevronRight size={16} className="text-slate-400" />
+                         </button>
+                         <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center gap-3"><div className="p-2 bg-slate-100 rounded-lg text-slate-600"><HelpCircle size={18} /></div><span className="text-sm font-bold text-slate-700">고객센터 / 도움말</span></div>
+                            <ChevronRight size={16} className="text-slate-400" />
+                         </button>
+                      </div>
+                      <div className="text-center">
+                         <p className="text-xs text-slate-400 mb-6">현재 버전 1.2.0 (최신)</p>
+                         <button onClick={handleLogout} className="text-red-500 font-bold text-sm px-6 py-3 rounded-xl hover:bg-red-50 transition-colors flex items-center justify-center gap-2 mx-auto w-full border border-red-100 bg-white"><LogOut size={16} /> 로그아웃</button>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+            </div>
+          </>
+        )}
+        
+        {isLoggedIn && (
+          <div className="absolute bottom-6 left-0 w-full px-6 flex justify-center z-20 pointer-events-none">
+            <div className="bg-white/90 backdrop-blur-xl border border-white/20 shadow-xl shadow-slate-300/50 rounded-full px-2 py-2 flex items-center gap-1 pointer-events-auto">
+              <NavButton active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<div className="grid grid-cols-2 gap-[2px]"><div className="w-1.5 h-1.5 rounded-sm bg-current opacity-50"></div><div className="w-1.5 h-1.5 rounded-sm bg-current"></div><div className="w-1.5 h-1.5 rounded-sm bg-current opacity-50"></div><div className="w-1.5 h-1.5 rounded-sm bg-current opacity-50"></div></div>} label="홈" />
+              <div className="w-px h-6 bg-slate-200 mx-1"></div>
+              <NavButton active={activeTab === 'qr'} onClick={() => setActiveTab('qr')} icon={<QrCode size={24} />} />
+              <NavButton active={['list', 'monitoring', 'permit_list', 'permit_create', 'external_work', 'external_work_detail'].includes(activeTab)} onClick={() => setActiveTab('list')} icon={<Menu size={24} />} />
+              <NavButton active={activeTab === 'mypage'} onClick={() => setActiveTab('mypage')} icon={<Settings size={24} />} />
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+export default SafetyAppPortfolio;
